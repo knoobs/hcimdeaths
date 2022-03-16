@@ -11,9 +11,9 @@ nest_asyncio.apply()
 import discord
 from discord.ext import commands, tasks
 import scraper as sc
-from config import Channels
+from config import Channels, Constants
 
-#TOKEN = "nice try silly goose"
+#TOKEN = <SECRET_KEY>
 
 intents = discord.Intents().all()
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -36,14 +36,14 @@ async def force_tweet(ctx, *argv):
 
     await ctx.send(file=discord.File(f"tweet_images/{name.lower().replace(' ','_')}.png"))
 
-@tasks.loop(minutes=15)
+@tasks.loop(minutes=30)
 async def my_background_task():
     # Get channels to interact with
     general = bot.get_channel(Channels.GENERAL)
     bot_channel = bot.get_channel(Channels.BOT_CHANNEL)
 
     # Check for new deaths
-    await bot_channel.send("Checking top 1000 hiscores for new deaths...")
+    await bot_channel.send(f"Checking top {str(Constants.MAX_RANK)} hiscores for new deaths...")
     names = sc.get_dead_names()
     tweet_names = sc.write_dead_names('hcim_deaths.json', names)
     await bot_channel.send("Done.")

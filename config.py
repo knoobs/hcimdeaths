@@ -21,7 +21,8 @@ class UserAgents:
     DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
     
 class Constants:
-    MAX_RANK = 1000
+    MAX_RANK = 3000
+    SLEEP_TIME = 1 # Seconds
     PRINTS = True
     IGNORED_PLAYERS = ['gandara'] # lowercase
     PVM_DICT = {'Bounty Hunter - Hunter'            : 1,

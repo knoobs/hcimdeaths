@@ -106,14 +106,14 @@ def get_player_stats(name):
     
     return player_info
 
-def get_dead_names():
+def get_dead_names(sleep_time=Constants.SLEEP_TIME):
 
     dead_names = {}
     for page in range(int(Constants.MAX_RANK/25)):
         if Constants.PRINTS:
             print(f"Searching Page {page+1} - {(page+1)*25}/{Constants.MAX_RANK}")
         dead_names.update(get_overall_rank_deaths(page+1))
-        time.sleep(10)
+        time.sleep(sleep_time)
     
     return dead_names
 
@@ -140,12 +140,10 @@ def create_image(name, stats):
     # Create image for tweet and populate with player stats
 
     # Find which backsplash to use based on # of bosses
-    num_bosses = len(stats['pvm'])-len(Constants.SKIPPED_BOSSES)
+    bosses = set(stats['pvm'])-set(Constants.SKIPPED_BOSSES)
+    num_bosses = len(bosses)
     print(f"{name} is ranked in {str(num_bosses)} bosses.")
-    if num_bosses % 8 == 0:
-        num_cols = math.floor(num_bosses/8)
-    else:
-        num_cols = math.floor(num_bosses/8) + 1
+    num_cols = math.ceil(num_bosses/8)
     file = f"blankstatsheets/blankstatsheet_{str(num_cols)}.png"
 
     # Get backsplash
@@ -221,7 +219,7 @@ def create_image(name, stats):
     image.save(f"tweet_images/{name.lower().replace(' ','_')}.PNG")
     return
 
-def create_tweets(names):
+def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
     # Creates tweets for each new dead name
 
     # Loop through each name
@@ -233,11 +231,11 @@ def create_tweets(names):
         create_image(name, stats)
 
         # Sleep for jagex pepega-ness
-        time.sleep(10)
+        time.sleep(sleep_time)
 
     return
 
-def write_dead_names(filename, dead_names):
+def write_dead_names(filename, dead_names, tweet_mode=True):
     # Write names to file if entry does not exist
 
     # Get absolute path
@@ -261,7 +259,8 @@ def write_dead_names(filename, dead_names):
     tweet_names = [dead_names[pid] for pid in keys_not_in_db]
     print("Found the following new deaths:")
     print(tweet_names)
-    create_tweets(tweet_names)
+    if tweet_mode:
+        create_tweets(tweet_names)
 
     # Update database
     for pid in keys_not_in_db:
@@ -276,9 +275,7 @@ def write_dead_names(filename, dead_names):
     return tweet_names
 
 if __name__ == "__main__":
-    #names = get_dead_names()
-    #write_dead_names('hcim_deaths.json', names)
+    names = get_dead_names()
+    write_dead_names('hcim_deaths.json', names, False)
 
-    name = "lydia kenney"
-    stats = get_player_stats(name)
-    create_image(name, stats)
+    #create_tweets(['Not the 1st', 'Lydia Kenney'])
