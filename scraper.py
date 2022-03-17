@@ -106,14 +106,14 @@ def get_player_stats(name):
     
     return player_info
 
-def get_dead_names(sleep_time=Constants.SLEEP_TIME):
+def get_dead_names():
 
     dead_names = {}
     for page in range(int(Constants.MAX_RANK/25)):
         if Constants.PRINTS:
             print(f"Searching Page {page+1} - {(page+1)*25}/{Constants.MAX_RANK}")
         dead_names.update(get_overall_rank_deaths(page+1))
-        time.sleep(sleep_time)
+        time.sleep(10)
     
     return dead_names
 
@@ -140,10 +140,13 @@ def create_image(name, stats):
     # Create image for tweet and populate with player stats
 
     # Find which backsplash to use based on # of bosses
-    bosses = set(stats['pvm'])-set(Constants.SKIPPED_BOSSES)
-    num_bosses = len(bosses)
+
+    num_bosses = len(stats['pvm'])-len(Constants.SKIPPED_BOSSES)
     print(f"{name} is ranked in {str(num_bosses)} bosses.")
-    num_cols = math.ceil(num_bosses/8)
+    if num_bosses % 8 == 0:
+        num_cols = math.floor(num_bosses/8)
+    else:
+        num_cols = math.floor(num_bosses/8) + 1
     file = f"blankstatsheets/blankstatsheet_{str(num_cols)}.png"
 
     # Get backsplash
@@ -219,7 +222,7 @@ def create_image(name, stats):
     image.save(f"tweet_images/{name.lower().replace(' ','_')}.PNG")
     return
 
-def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
+def create_tweets(names):
     # Creates tweets for each new dead name
 
     # Loop through each name
@@ -231,11 +234,11 @@ def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
         create_image(name, stats)
 
         # Sleep for jagex pepega-ness
-        time.sleep(sleep_time)
+        time.sleep(10)
 
     return
 
-def write_dead_names(filename, dead_names, tweet_mode=True):
+def write_dead_names(filename, dead_names):
     # Write names to file if entry does not exist
 
     # Get absolute path
@@ -259,8 +262,7 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
     tweet_names = [dead_names[pid] for pid in keys_not_in_db]
     print("Found the following new deaths:")
     print(tweet_names)
-    if tweet_mode:
-        create_tweets(tweet_names)
+    create_tweets(tweet_names)
 
     # Update database
     for pid in keys_not_in_db:
@@ -275,7 +277,58 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
     return tweet_names
 
 if __name__ == "__main__":
-    names = get_dead_names()
-    write_dead_names('hcim_deaths.json', names, False)
+    #names = get_dead_names()
+    #write_dead_names('hcim_deaths.json', names)
 
-    #create_tweets(['Not the 1st', 'Lydia Kenney'])
+    name = "lydia kenney"
+    stats = get_player_stats(name)
+    create_image(name, stats)
+    
+def create_text(name, stats):
+    # Create text for tweet and populate with player stats
+
+    # Find which backsplash to use based on # of bosses
+    text = f"{str(name)} has died!\n"
+    rank = stats['skills']['Overall']['rank']
+    xp = stats['skills']['Overall']['xp']
+    
+    text += f" Rank {str(rank)} Overall with {str(xp)}\n"
+    text += f" -- \n"
+    
+    pvm_data = stats['pvm']
+    
+    for boss in Constants.NEW_PVM_DICT.keys():
+        
+        if boss in pvm_data:
+            rank = stats['pvm'][boss]['rank']
+            kc = stats['pvm'][boss]['kc']
+        else:
+            continue
+        
+        rank = int(rank.replace(',', ''))
+        if rank < 26:
+          text += f"Rank {int(rank)} {str(boss)} - {str(kc)} KC \n"
+        else:
+            continue
+        
+    text += f" -- \n"
+   
+    for skill in Constants.SKILL_DICT.keys():
+        if skill == 'Overall':
+            continue
+        rank = stats['skills'][skill]['rank']
+        xp = stats['skills'][skill]['xp']
+        xp = float(xp.replace(',', ''))
+        xp = xp/1000000
+        xp = format(xp, ".1f")
+        
+        if int(rank) < 51:
+          text += f"Rank {int(rank)} {str(skill)} - {str(xp)}M XP\n"
+        else:
+            continue
+        
+    return text
+
+#name = "lydia kenney"
+#stats = get_player_stats(name)
+#create_text(name, stats)

@@ -7,13 +7,17 @@ Created on Tue Jan 12 23:37:59 2021
 
 import nest_asyncio
 nest_asyncio.apply()
+import os
+from dotenv import load_dotenv
 
 import discord
 from discord.ext import commands, tasks
 import scraper as sc
-from config import Channels, Constants
+from config import Channels
 
-#TOKEN = <SECRET_KEY>
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
+nest_asyncio.apply()
 
 intents = discord.Intents().all()
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -33,17 +37,19 @@ async def force_tweet(ctx, *argv):
     print(f"Getting image for {name}")
     stats = sc.get_player_stats(name)
     sc.create_image(name, stats)
-
+    text = sc.create_text(name, stats)
+    print(text)
+    await ctx.send(text)
     await ctx.send(file=discord.File(f"tweet_images/{name.lower().replace(' ','_')}.png"))
 
-@tasks.loop(minutes=30)
+@tasks.loop(minutes=15)
 async def my_background_task():
     # Get channels to interact with
     general = bot.get_channel(Channels.GENERAL)
     bot_channel = bot.get_channel(Channels.BOT_CHANNEL)
 
     # Check for new deaths
-    await bot_channel.send(f"Checking top {str(Constants.MAX_RANK)} hiscores for new deaths...")
+    await bot_channel.send("Checking top 1000 hiscores for new deaths...")
     names = sc.get_dead_names()
     tweet_names = sc.write_dead_names('hcim_deaths.json', names)
     await bot_channel.send("Done.")
