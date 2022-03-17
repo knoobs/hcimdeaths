@@ -7,12 +7,13 @@ Created on Sun Nov 14 16:37:02 2021
 
 import requests
 from bs4 import BeautifulSoup
-from config import Urls, UserAgents, Constants
+from config import Urls, UserAgents, Constants, APIs
 import time
 import os
 import json
 from PIL import Image, ImageDraw, ImageFont
 import math
+import tweepy
 
 def read_webpage(URL):
     # Returns BeautifulSoup html object for a webpage
@@ -68,6 +69,51 @@ def get_overall_rank_deaths(page_number):
         name = data[1]
         dead_names.update({ pid : name.replace('\xa0',' ') })
         
+    return dead_names
+
+def get_individual_rank_deaths():
+    # Scrap individual skill/boss pages for deaths
+
+    dead_names = []
+
+    queries = {}
+    queries.update(Constants.SKILL_DICT)
+    queries.update(Constants.PVM_DICT)
+
+    for attr, table_id in queries.items():
+        print(f"Searching deaths for top: '{attr}'")
+        if attr in Constants.SKILL_DICT.keys():
+            URL = Urls.HCIM_SKILL_PAGE + str(table_id)
+        if attr in Constants.PVM_DICT.keys():
+            URL = Urls.HCIM_BOSS_PAGE + str(table_id)
+        soup = read_webpage(URL)
+
+        name_html = soup.find_all("tr", attrs={"class": "personal-hiscores__row"})
+
+        # Verify successful ping
+        attempt = 1
+        success = False
+        while not success:
+            try:
+                first_name_on_page = name_html[0].text
+                success = True
+            except:
+                print("\tWARNING: Hiscore ping failure - 60 second cooldown...")
+                time.sleep(60)
+                attempt += 1
+                print(f"Attempt #{attempt} - trying again")
+                soup = read_webpage(URL)
+                name_html = soup.find_all("tr", attrs={"class": "personal-hiscores__row"})
+
+        dead_html = [x.text.split('\n') for x in name_html if x.find_all(attrs={"class": "hiscore-death"}) != []]
+
+        for death in dead_html:
+            data = [x for x in death if x != '']
+            name = data[1]
+            if name.lower() in Constants.IGNORED_PLAYERS or name in dead_names:
+                continue
+            dead_names.append(name)
+
     return dead_names
 
 def get_player_stats(name):
@@ -227,7 +273,7 @@ def create_text(name, stats):
     rank = stats['skills']['Overall']['rank']
     xp = stats['skills']['Overall']['xp']
 
-    text += f" Rank {rank} Overall with {xp}\n"
+    text += f" Rank {rank} Overall with {xp} XP\n"
     text += f" -- \n"
 
     pvm_data = stats['pvm']
@@ -276,6 +322,25 @@ def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
 
         # Sleep for jagex pepega-ness
         time.sleep(sleep_time)
+
+    return
+
+def post_tweet(tweet_text, image_path):
+
+    # Get keys
+    consumer_key = APIs.TWITTER_AUTH_KEYS['consumer_key']
+    consumer_secret = APIs.TWITTER_AUTH_KEYS['consumer_secret']
+    access_token = APIs.TWITTER_AUTH_KEYS['access_token']
+    access_token_secret = APIs.TWITTER_AUTH_KEYS['access_token_secret']
+
+    # Authenticate and start API
+    auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    api = tweepy.API(auth)
+
+    #Generate text tweet with media (image)
+    media_id = api.media_upload(image_path).media_id
+    api.update_status(status=tweet_text, media_ids=[media_id])
 
     return
 
