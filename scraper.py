@@ -35,6 +35,7 @@ def read_webpage(URL):
 
 def get_overall_rank_deaths(page_number):
     # Scrap overall hcim pages for deaths
+    # Output: Dictionary of { pid : name }
     
     dead_names = {}
 
@@ -73,19 +74,24 @@ def get_overall_rank_deaths(page_number):
 
 def get_individual_rank_deaths():
     # Scrap individual skill/boss pages for deaths
+    # Output: List of dead names (id's are added in get_dead_names())
 
     dead_names = []
 
+    # Get list of all pages to loop through
     queries = {}
     queries.update(Constants.SKILL_DICT)
     queries.update(Constants.PVM_DICT)
 
+    # Loop through each page
     for attr, table_id in queries.items():
-        print(f"Searching deaths for top: '{attr}'")
         if attr in Constants.SKILL_DICT.keys():
+            if attr == 'Overall':
+                continue
             URL = Urls.HCIM_SKILL_PAGE + str(table_id)
         if attr in Constants.PVM_DICT.keys():
             URL = Urls.HCIM_BOSS_PAGE + str(table_id)
+        print(f"Searching deaths for top: '{attr}'")
         soup = read_webpage(URL)
 
         name_html = soup.find_all("tr", attrs={"class": "personal-hiscores__row"})
@@ -109,7 +115,7 @@ def get_individual_rank_deaths():
 
         for death in dead_html:
             data = [x for x in death if x != '']
-            name = data[1]
+            name = data[1].replace('\xa0',' ')
             if name.lower() in Constants.IGNORED_PLAYERS or name in dead_names:
                 continue
             dead_names.append(name)
@@ -152,15 +158,53 @@ def get_player_stats(name):
     
     return player_info
 
-def get_dead_names(sleep_time=Constants.SLEEP_TIME):
+def get_dead_names(filename, sleep_time=Constants.SLEEP_TIME):
 
+    # Get dead names from overall
     dead_names = {}
     for page in range(int(Constants.MAX_RANK/25)):
         if Constants.PRINTS:
             print(f"Searching Page {page+1} - {(page+1)*25}/{Constants.MAX_RANK}")
         dead_names.update(get_overall_rank_deaths(page+1))
         time.sleep(sleep_time)
-    
+
+    # Get dead names from boss/skills
+    deaths_ind = get_individual_rank_deaths()
+
+    # Open DB
+    with open(filename, 'r') as read_file:
+        database = json.load(read_file)
+    pid_list = list(database.keys())
+    name_list = list(database.values())
+
+    # Check if names are in DB
+    #   If they are -> skip
+    #   If they are not -> check id
+    #       If id in db, update name
+    #       If id not in db, add to dead_names
+    updated = False
+    for name in deaths_ind:
+        if name in name_list:
+            pos = name_list.index(name)
+            dead_names.update({ pid_list[pos] : name })
+            continue
+
+        stats = get_player_stats(name)
+        xp = stats['skills']['Overall']['xp'].replace(',','')
+        level = stats['skills']['Overall']['level'].replace(',','')
+        pid = level+xp
+
+        dead_names.update({ pid : name })
+        if pid in pid_list:
+            updated = True
+            print(f"Name change detected: {database[pid]} -> {name}\nUpdating...")
+            database[pid] = name
+
+    # Update name changes
+    if updated:
+        with open(filename, 'w') as write_file:
+            json.dump(database, write_file)
+
     return dead_names
 
 def generate_backsplash(file, width=0, height=0):
@@ -345,10 +389,7 @@ def post_tweet(tweet_text, image_path):
     return
 
 def write_dead_names(filename, dead_names, tweet_mode=True):
-    # Write names to file if entry does not exist
-
-    # Get absolute path
-    filename = os.getcwd() + os.sep + filename
+    # Write names to file if entry does not exist and create tweet image
 
     # Create db if it doesnt exist
     if not os.path.exists(filename):
@@ -358,20 +399,24 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
         return
 
     # Load db if it exists
+    print(f"Loading database: {filename}")
     with open(filename, 'r') as read_file:
         database = json.load(read_file)
 
     # Find ids not in db that were found from scrape
     keys_not_in_db = set(dead_names) - set(database)
+    if len(keys_not_in_db) > 0:
+        print("New deaths detected.")
 
     # Create tweets with new deaths
     tweet_names = [dead_names[pid] for pid in keys_not_in_db]
-    print("Found the following new deaths:")
+    print(f"Found the following {str(len(tweet_names))} new deaths:")
     print(tweet_names)
     if tweet_mode:
         create_tweets(tweet_names)
 
     # Update database
+    print("Adding new deaths to database.")
     for pid in keys_not_in_db:
         database.update({pid : dead_names[pid]})
 
@@ -384,8 +429,12 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
     return tweet_names
 
 if __name__ == "__main__":
-    #names = get_dead_names()
-    #write_dead_names('hcim_deaths.json', names, False)
+    # Initialize/Update Database w/o tweeting
+    filename = 'hcim_deaths.json'
+    names = get_dead_names(filename) # Gets all dead names in criteria
+    write_dead_names(filename, names, False) # Writes/updates database with above names
 
+    # General testing
+    stats = get_player_stats('Lydia Kenney')
     create_tweets(['Not the 1st', 'Lydia Kenney'])
-    print(create_text('Lydia Kenney', get_player_stats('Lydia Kenney')))
+    print(create_text('Lydia Kenney', stats))
