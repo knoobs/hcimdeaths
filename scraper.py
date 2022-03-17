@@ -240,8 +240,7 @@ def create_text(name, stats):
         else:
             continue
 
-        rank = int(rank.replace(',', ''))
-        if rank <= Constants.BOSS_RANK:
+        if int(rank.replace(',', '')) <= Constants.BOSS_RANK:
           text += f"Rank {rank} {boss} - {kc} KC \n"
         else:
             continue
@@ -257,7 +256,7 @@ def create_text(name, stats):
         xp = xp/1000000
         xp = format(xp, ".1f")
 
-        if int(rank) <= Constants.SKILL_RANK:
+        if int(rank.replace(',', '')) <= Constants.SKILL_RANK:
           text += f"Rank {rank} {skill} - {xp}M XP\n"
         else:
             continue
