@@ -13,7 +13,7 @@ from discord.ext import commands, tasks
 import scraper as sc
 from config import Channels, Constants
 
-#TOKEN = <SECRET_KEY>
+#TOKEN = <secret key>
 
 intents = discord.Intents().all()
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -33,7 +33,8 @@ async def force_tweet(ctx, *argv):
     print(f"Getting image for {name}")
     stats = sc.get_player_stats(name)
     sc.create_image(name, stats)
-
+    text = sc.create_text(name, stats)
+    await ctx.send(text)
     await ctx.send(file=discord.File(f"tweet_images/{name.lower().replace(' ','_')}.png"))
 
 @tasks.loop(minutes=30)
@@ -50,6 +51,9 @@ async def my_background_task():
 
     # Post images
     for name in tweet_names:
+        stats = sc.get_player_stats(name)
+        text = sc.create_text(name, stats)
+        await general.send(text)
         await general.send(file=discord.File(f"tweet_images/{name.lower().replace(' ','_')}.png"))
 
 @my_background_task.before_loop

@@ -219,6 +219,51 @@ def create_image(name, stats):
     image.save(f"tweet_images/{name.lower().replace(' ','_')}.PNG")
     return
 
+def create_text(name, stats):
+    # Create text for tweet and populate with player stats
+
+    # Find which backsplash to use based on # of bosses
+    text = f"{name} has died!\n"
+    rank = stats['skills']['Overall']['rank']
+    xp = stats['skills']['Overall']['xp']
+
+    text += f" Rank {rank} Overall with {xp}\n"
+    text += f" -- \n"
+
+    pvm_data = stats['pvm']
+
+    for boss in Constants.PVM_ORDER:
+
+        if boss in pvm_data:
+            rank = stats['pvm'][boss]['rank']
+            kc = stats['pvm'][boss]['kc']
+        else:
+            continue
+
+        rank = int(rank.replace(',', ''))
+        if rank <= Constants.BOSS_RANK:
+          text += f"Rank {rank} {boss} - {kc} KC \n"
+        else:
+            continue
+
+    text += f" -- \n"
+
+    for skill in Constants.SKILL_DICT.keys():
+        if skill == 'Overall':
+            continue
+        rank = stats['skills'][skill]['rank']
+        xp = stats['skills'][skill]['xp']
+        xp = float(xp.replace(',', ''))
+        xp = xp/1000000
+        xp = format(xp, ".1f")
+
+        if int(rank) <= Constants.SKILL_RANK:
+          text += f"Rank {rank} {skill} - {xp}M XP\n"
+        else:
+            continue
+
+    return text
+
 def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
     # Creates tweets for each new dead name
 
@@ -275,7 +320,8 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
     return tweet_names
 
 if __name__ == "__main__":
-    names = get_dead_names()
-    write_dead_names('hcim_deaths.json', names, False)
+    #names = get_dead_names()
+    #write_dead_names('hcim_deaths.json', names, False)
 
-    #create_tweets(['Not the 1st', 'Lydia Kenney'])
+    create_tweets(['Not the 1st', 'Lydia Kenney'])
+    print(create_text('Lydia Kenney', get_player_stats('Lydia Kenney')))
