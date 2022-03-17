@@ -54,7 +54,7 @@ async def my_background_task():
 
     # Check for new deaths
     await bot_channel.send(f"Checking top {str(Constants.MAX_RANK)} hiscores for new deaths...")
-    names = sc.get_dead_names()
+    names = sc.get_dead_names('hcim_deaths.json')
     tweet_names = sc.write_dead_names('hcim_deaths.json', names)
     await bot_channel.send("Done.")
 
