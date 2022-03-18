@@ -66,7 +66,7 @@ async def my_background_task():
         image = f"tweet_images/{name.lower().replace(' ', '_')}.PNG"
 
         # Post tweet on twitter and in discord
-        #sc.post_tweet(text, image)
+        sc.post_tweet(text, image)
         await general.send(text)
         await general.send(file=discord.File(image))
 

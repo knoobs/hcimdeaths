@@ -371,6 +371,28 @@ def create_tweets(names, sleep_time=Constants.SLEEP_TIME):
 
 def post_tweet(tweet_text, image_path):
 
+    # Get all text split by line
+    text_lines =  tweet_text.split('\n')
+
+    # Loop to fill text parts
+    max_char = 280
+    cur_index = 0
+    done_parse = False
+    tweet_text_parts = []
+    while not done_parse:
+        tweet_part = text_lines[cur_index]
+        try:
+            while len(tweet_part)+len(text_lines[cur_index+1]) < max_char:
+                cur_index += 1
+                if cur_index > (len(text_lines)-1):
+                    break
+                tweet_part += text_lines[cur_index]
+            tweet_text_parts.append(tweet_part)
+            if cur_index == (len(text_lines)-1):
+                break
+        except:
+            break
+
     # Get keys
     consumer_key = APIs.TWITTER_AUTH_KEYS['consumer_key']
     consumer_secret = APIs.TWITTER_AUTH_KEYS['consumer_secret']
@@ -384,7 +406,7 @@ def post_tweet(tweet_text, image_path):
 
     #Generate text tweet with media (image)
     media_id = api.media_upload(image_path).media_id
-    api.update_status(status=tweet_text, media_ids=[media_id])
+    api.update_status(status=tweet_text_parts[0], media_ids=[media_id])
 
     return
 
@@ -430,11 +452,19 @@ def write_dead_names(filename, dead_names, tweet_mode=True):
 
 if __name__ == "__main__":
     # Initialize/Update Database w/o tweeting
-    filename = 'hcim_deaths.json'
-    names = get_dead_names(filename) # Gets all dead names in criteria
-    write_dead_names(filename, names, False) # Writes/updates database with above names
+    #filename = 'hcim_deaths.json'
+    #names = get_dead_names(filename) # Gets all dead names in criteria
+    #write_dead_names(filename, names, False) # Writes/updates database with above names
 
     # General testing
-    stats = get_player_stats('Lydia Kenney')
-    create_tweets(['Not the 1st', 'Lydia Kenney'])
-    print(create_text('Lydia Kenney', stats))
+    #stats = get_player_stats('Lydia Kenney')
+    #create_tweets(['Not the 1st', 'Lydia Kenney'])
+    #print(create_text('Lydia Kenney', stats))
+
+    name = 'PRAISE FOOT'
+    stats = get_player_stats(name)
+    tweet_text = create_text(name, stats)
+    create_image(name, stats)
+    image_path = f"tweet_images/{name.lower().replace(' ', '_')}.PNG"
+
+    post_tweet(tweet_text, image_path)
