@@ -375,22 +375,22 @@ def post_tweet(tweet_text, image_path):
     text_lines =  tweet_text.split('\n')
 
     # Loop to fill text parts
-    max_char = 280
+    max_char = 250
     cur_index = 0
-    done_parse = False
     tweet_text_parts = []
-    while not done_parse:
+    while True:
         tweet_part = text_lines[cur_index]
         try:
             while len(tweet_part)+len(text_lines[cur_index+1]) < max_char:
                 cur_index += 1
                 if cur_index > (len(text_lines)-1):
                     break
-                tweet_part += text_lines[cur_index]
+                tweet_part += '\n'+text_lines[cur_index]
             tweet_text_parts.append(tweet_part)
             if cur_index == (len(text_lines)-1):
                 break
         except:
+            tweet_text_parts.append(tweet_part)
             break
 
     # Get keys
@@ -461,7 +461,7 @@ if __name__ == "__main__":
     #create_tweets(['Not the 1st', 'Lydia Kenney'])
     #print(create_text('Lydia Kenney', stats))
 
-    name = 'PRAISE FOOT'
+    name = 'Air Go Woosh'
     stats = get_player_stats(name)
     tweet_text = create_text(name, stats)
     create_image(name, stats)
