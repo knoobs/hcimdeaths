@@ -312,44 +312,36 @@ def create_image(name, stats):
 def create_text(name, stats):
     # Create text for tweet and populate with player stats
 
-    # Find which backsplash to use based on # of bosses
     text = f"{name} has died!\n"
     rank = stats['skills']['Overall']['rank']
     xp = stats['skills']['Overall']['xp']
-
     text += f" Rank {rank} Overall with {xp} XP\n"
-    text += f" -- \n"
 
     pvm_data = stats['pvm']
+    skill_data = stats['skills']
 
-    for boss in Constants.PVM_ORDER:
+    # Add boss data to text
+    text += f" --\n"
+    rank_boss = [(int(pvm_data[boss]['rank'].replace(',','')),boss) for boss in Constants.PVM_ORDER]
+    rank_boss.sort(key=lambda y: y[0])
+    for rank, boss in rank_boss:
+        kc = pvm_data[boss]['kc']
+        counter = 'KC'
+        if boss in ['Soul Wars Zeal', 'LMS - Rank']:
+            counter = 'score'
+        if rank <= Constants.BOSS_RANK:
+            text += f"Rank {rank} {boss} - {kc} {counter}\n"
 
-        if boss in pvm_data:
-            rank = stats['pvm'][boss]['rank']
-            kc = stats['pvm'][boss]['kc']
-        else:
-            continue
-
-        if int(rank.replace(',', '')) <= Constants.BOSS_RANK:
-          text += f"Rank {rank} {boss} - {kc} KC \n"
-        else:
-            continue
-
-    text += f" -- \n"
-
-    for skill in Constants.SKILL_DICT.keys():
+    # Add skill data to text
+    text += f" --\n"
+    rank_skill = [(int(skill_data[skill]['rank'].replace(',', '')), skill) for skill in Constants.SKILL_DICT]
+    rank_skill.sort(key=lambda y: y[0])
+    for rank, skill in rank_skill:
         if skill == 'Overall':
             continue
-        rank = stats['skills'][skill]['rank']
-        xp = stats['skills'][skill]['xp']
-        xp = float(xp.replace(',', ''))
-        xp = xp/1000000
-        xp = format(xp, ".1f")
-
-        if int(rank.replace(',', '')) <= Constants.SKILL_RANK:
-          text += f"Rank {rank} {skill} - {xp}M XP\n"
-        else:
-            continue
+        xp = format(float(skill_data[skill]['xp'].replace(',', ''))/1000000, ".1f")
+        if rank <= Constants.SKILL_RANK:
+            text += f"Rank {rank} {skill} - {xp}M XP\n"
 
     return text
 
